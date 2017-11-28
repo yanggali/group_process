@@ -83,10 +83,57 @@ def group_statistic(event_group_file,event_groupid_file,groupid_users_file):
     write_to_file(event_groupid_file,event_groupid_str)
     write_to_file(groupid_users_file,groupid_users_str)
 
+#统计group数目
+def group_statistic_v2(event_group_file,event_groupid_file,groupid_users_file):
+    col_names = ["event","group"]
+    df = pd.read_csv(event_group_file,header=None,sep="\t",names=col_names,engine="python")
+    group_list = []
+    group_index_dict = dict()
+    for index,row in df.iterrows():
+        group = set(str(row["group"]).split(" "))
+        group_hashcode = get_hash_code(group)
+        if group_hashcode not in group_index_dict:
+            group_index_dict[group_hashcode] = len(group_index_dict)
+    event_groupid_str = ""
+    groupid_users_str = ""
+    for index,row in df.iterrows():
+        group = set(str(row["group"]).split(" "))
+        group_hashcode = get_hash_code(group)
+        id = group_index_dict[group_hashcode]
+        event_groupid_str += str(row["event"])+"\t"+str(id)+"\n"
+        groupid_users_str += str(id)+"\t"+str(row["group"])+"\n"
+    write_to_file(event_groupid_file,event_groupid_str)
+    write_to_file(groupid_users_file,groupid_users_str)
 
 #得到set的hash值
 def get_hash_code(group):
+    quicksort(0,len(group)-1)
     hash_code = ""
     for user in group:
         hash_code += str(user)
     return hash_code
+
+def quicksort(arr, left, right):
+    # 只有left < right 排序
+    if left < right:
+        pivot_index = partition(arr, left, right)
+        quicksort(arr, left, pivot_index - 1)
+        quicksort(arr, pivot_index + 1, right)
+
+
+def partition(arr, left, right):
+    """找到基准位置, 并返回"""
+    pivot_index = left
+    pivot = arr[left]
+
+    for i in range(left + 1, right + 1):
+        if arr[i] < pivot:
+            # 如果此处索引的值小于基准值, 基准值的位置后移一位
+            # 并将后移一位的值和这个值交换, 让基准位置及之前的始终小于基准值
+            pivot_index += 1
+            if pivot_index != i:
+                arr[pivot_index], arr[i] = arr[i], arr[pivot_index]
+
+    # 将基准值移动到正确的位置
+    arr[left], arr[pivot_index] = arr[pivot_index], arr[left]
+    return pivot_index
