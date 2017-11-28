@@ -1,5 +1,5 @@
 import pandas as pd
-from file_process import initial_adjacent_matrix,dfs,write_to_file
+from file_process import initial_adjacent_matrix,dfs,write_to_file,append_to_file
 import sys
 sys.setrecursionlimit(10000) #例如这里设置为一百万
 #获取朋友关系
@@ -90,24 +90,30 @@ def group_statistic_v2(event_group_file,event_groupid_file,groupid_users_file):
     group_list = []
     group_index_dict = dict()
     for index,row in df.iterrows():
-        group = set(str(row["group"]).split(" "))
+        group = str(row["group"]).split(" ")
         group_hashcode = get_hash_code(group)
         if group_hashcode not in group_index_dict:
             group_index_dict[group_hashcode] = len(group_index_dict)
     event_groupid_str = ""
     groupid_users_str = ""
     for index,row in df.iterrows():
-        group = set(str(row["group"]).split(" "))
+        if index%2000 == 0:
+            append_to_file(event_groupid_file,event_groupid_str)
+            append_to_file(groupid_users_file,groupid_users_str)
+            event_groupid_str = ""
+            groupid_users_str = ""
+        group = str(row["group"]).split(" ")
         group_hashcode = get_hash_code(group)
         id = group_index_dict[group_hashcode]
         event_groupid_str += str(row["event"])+"\t"+str(id)+"\n"
         groupid_users_str += str(id)+"\t"+str(row["group"])+"\n"
-    write_to_file(event_groupid_file,event_groupid_str)
-    write_to_file(groupid_users_file,groupid_users_str)
+        print("%d row finished!" % index)
+    append_to_file(event_groupid_file,event_groupid_str)
+    append_to_file(groupid_users_file,groupid_users_str)
 
 #得到set的hash值
 def get_hash_code(group):
-    quicksort(0,len(group)-1)
+    quicksort(group,0,len(group)-1)
     hash_code = ""
     for user in group:
         hash_code += str(user)
