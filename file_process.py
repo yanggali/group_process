@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
-
+import sys
+sys.setrecursionlimit(100000) #例如这里设置为一百万
 def test(event_attendee_file):
     df = pd.read_csv(event_attendee_file)
     user_set = set()
@@ -25,12 +26,14 @@ def write_to_tuple(event_attendee_file,user_event_file):
     write_to_file(user_event_file,write_str)
 
 #根据event_attendees和朋友关系获取group以及group参加的活动
-def initial_user_friends(event_attedees_file,user_friends_file,event_group_file):
+def initial_user_friends(event_attedees_file,user_friends_file,event_group_file,direct):
     user_friends_dict = relation_to_dict(user_friends_file)
     event_group_str = ""
     df = pd.read_csv(event_attedees_file)
     for index,row in df.iterrows():
-
+        if index%1000 == 0:
+            append_to_file(event_group_file,event_group_str)
+            event_group_str = ""
         attendees_list = str(row["yes"]).split(" ")
         vertex = len(attendees_list)
         attendee_index_dict = dict()
@@ -39,7 +42,8 @@ def initial_user_friends(event_attedees_file,user_friends_file,event_group_file)
             attendee_index_dict[attendee] = int(len(attendee_index_dict))
             index_attendee_dict[len(index_attendee_dict)] = attendee
         #初始化邻接矩阵
-        adjacent_matrix = initial_adjacent_matrix(attendees_list,attendee_index_dict,user_friends_dict)
+        #好友关系无向
+        adjacent_matrix = initial_adjacent_matrix(attendees_list,attendee_index_dict,user_friends_dict,direct)
         visited_list = [0 for i in range(vertex)]
         connect_set = set()
         #计算连通分图
@@ -54,13 +58,13 @@ def initial_user_friends(event_attedees_file,user_friends_file,event_group_file)
                         users_str += str(user)+" "
                     events = str(row["event"]).split(" ")
                     if len(events) == 1:
-                        event_group_str += str(row["event"]) + "::"+users_str+"\n"
+                        event_group_str += str(row["event"]) + "\t"+users_str+"\n"
                     else:
                         for event in events:
-                            event_group_str += event + "::" + users_str + "\n"
+                            event_group_str += event + "\t" + users_str + "\n"
 
         print("event "+ str(row["event"])+" finished.")
-    write_to_file(event_group_file,event_group_str)
+    append_to_file(event_group_file,event_group_str)
 
 
 #深度优先搜索查找
@@ -74,21 +78,31 @@ def dfs(root,vertex,visited_list,adjacent_matrix,index_attendee_dict,connect_set
     #return index_attendee_dict[root] + " "
 
 #初始化邻接矩阵并返回
-def initial_adjacent_matrix(attendee_list,attendee_index_dict,user_friends_dict):
+def initial_adjacent_matrix(attendee_list,attendee_index_dict,user_friends_dict,direct = 0):
     adjacent_matrix = np.zeros((len(attendee_list),len(attendee_list)))
-    for u in attendee_list:
-        for v in attendee_list[attendee_index_dict[u]+1:]:
-            v_friends = user_friends_dict.get(v, 'nan')
-            u_friends = user_friends_dict.get(u, 'nan')
-            test_friends = user_friends_dict.get("1013376584")
-            if (u in v_friends) or (v in u_friends):
-                adjacent_matrix[attendee_index_dict[u]][attendee_index_dict[v]] = 1
-                adjacent_matrix[attendee_index_dict[v]][attendee_index_dict[u]] = 1
+    #朋友关系之间是无向的
+    if direct == 0:
+        for u in attendee_list:
+            for v in attendee_list[attendee_index_dict[u]+1:]:
+                v_friends = user_friends_dict.get(v, 'nan')
+                u_friends = user_friends_dict.get(u, 'nan')
+                if (u in v_friends) or (v in u_friends):
+                    adjacent_matrix[attendee_index_dict[u]][attendee_index_dict[v]] = 1
+                    adjacent_matrix[attendee_index_dict[v]][attendee_index_dict[u]] = 1
+    #朋友关系之间是有向的
+    else:
+        for u in attendee_list:
+            for v in attendee_list[attendee_index_dict[u]+1:]:
+                v_friends = user_friends_dict.get(v, 'nan')
+                u_friends = user_friends_dict.get(u, 'nan')
+                if (u in v_friends) and (v in u_friends):
+                    adjacent_matrix[attendee_index_dict[u]][attendee_index_dict[v]] = 1
+                    adjacent_matrix[attendee_index_dict[v]][attendee_index_dict[u]] = 1
     return adjacent_matrix
 
 #将朋友关系初始化到dict中
-def relation_to_dict(user_friends_file):
-    df = pd.read_csv(user_friends_file)
+def relation_to_dict(user_friends_file,col_names = ["user","friends"]):
+    df = pd.read_csv(user_friends_file,names = col_names)
     user_friends_dict = dict()
     for index,row in df.iterrows():
         if str(row["friends"])!="nan":
@@ -120,4 +134,8 @@ def relation_to_tuple(user_friends_file,user_friend_tuple_file):
 #将字符串写入文件
 def write_to_file(filename,str):
     with open(filename,'w') as fw:
+        fw.write(str)
+#将字符串追加至文件
+def append_to_file(filename,str):
+    with open(filename,'a') as fw:
         fw.write(str)

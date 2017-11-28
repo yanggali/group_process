@@ -68,7 +68,7 @@ def get_event_group(event_users_file,event_group_file):
 #统计group数目
 def group_statistic(event_group_file,event_groupid_file,groupid_users_file):
     col_names = ["event","group"]
-    df = pd.read_csv(event_group_file,header=None,sep="::",names=col_names,engine="python")
+    df = pd.read_csv(event_group_file,header=None,sep="\t",names=col_names,engine="python")
     group_list = []
     for index,row in df.iterrows():
         group = set(str(row["group"]).split(" "))
@@ -78,8 +78,8 @@ def group_statistic(event_group_file,event_groupid_file,groupid_users_file):
     groupid_users_str = ""
     for index,row in df.iterrows():
         id = group_list.index(set(str(row["group"]).split(" ")))
-        event_groupid_str += str(row["event"])+"::"+str(id)+"\n"
-        groupid_users_str += str(id)+"::"+str(row["group"])+"\n"
+        event_groupid_str += str(row["event"])+"\t"+str(id)+"\n"
+        groupid_users_str += str(id)+"\t"+str(row["group"])+"\n"
     write_to_file(event_groupid_file,event_groupid_str)
     write_to_file(groupid_users_file,groupid_users_str)
 
