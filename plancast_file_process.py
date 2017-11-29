@@ -1,6 +1,7 @@
 import pandas as pd
 from file_process import initial_adjacent_matrix,dfs,write_to_file,append_to_file
 import sys
+import os
 sys.setrecursionlimit(10000) #例如这里设置为一百万
 #获取朋友关系
 def initial_friends_relationship(user_subscription_file):
@@ -34,7 +35,7 @@ def initial_group_event(user_event_file,user_subscription_file,event_users_file)
             user_index_dict[user] = int(len(user_index_dict))
             index_user_dict[len(index_user_dict)] = user
         #初始化邻接矩阵
-        adjacent_matrix = initial_adjacent_matrix(users_list,user_index_dict,user_friends_dict)
+        adjacent_matrix = initial_adjacent_matrix(users_list,user_index_dict,user_friends_dict,1)
         visited_list = [0 for i in range(vertex)]
 
         # 计算连通分图
@@ -96,6 +97,10 @@ def group_statistic_v2(event_group_file,event_groupid_file,groupid_users_file):
             group_index_dict[group_hashcode] = len(group_index_dict)
     event_groupid_str = ""
     groupid_users_str = ""
+    if os.path.exists(event_groupid_file):
+        os.remove(event_groupid_file)
+    if os.path.exists(groupid_users_file):
+        os.remove(groupid_users_file)
     for index,row in df.iterrows():
         if index%2000 == 0:
             append_to_file(event_groupid_file,event_groupid_str)

@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import sys
+import os
 sys.setrecursionlimit(100000) #例如这里设置为一百万
 def test(event_attendee_file):
     df = pd.read_csv(event_attendee_file)
@@ -17,12 +18,13 @@ def write_to_tuple(event_attendee_file,user_event_file):
     print("total event number:%d" % len(df))
     write_str = ''
     for index,row in df.iterrows():
-        # print(row["yes"])
+        event_list = str(row["event"]).split(" ")
         user_list = str(row["yes"]).split(' ')
-        if len(user_list) == 1:
+        if len(user_list) == 1 and str(row["yes"])!="nan":
             continue
-        for user in user_list:
-            write_str += user+" "+str(row["event"])+"\n"
+        for event in event_list:
+            for user in user_list:
+                write_str += user+" "+event+"\n"
     write_to_file(user_event_file,write_str)
 
 #根据event_attendees和朋友关系获取group以及group参加的活动
@@ -131,6 +133,82 @@ def relation_to_tuple(user_friends_file,user_friend_tuple_file):
                     user_friend_tuple += user+" "+friend+"\n"
     write_to_file(user_friend_tuple_file,user_friend_tuple)
 
+#将user和event映射到id，将user_event表映射到userid_eventid表
+def user_event_to_id(user_event_file,user_id_map_file,event_id_map_file,userid_eventid_map_file):
+    #df = pd.read_csv(user_event_file,sep="\t",names=["user","event"],engine="python")
+    df = pd.read_csv(user_event_file,names=["user","event"])
+    user_set = set(df["user"].unique())
+    event_set = set(df["event"].unique())
+    user_id_dict = {}
+    event_id_dict = {}
+    for user in user_set:
+        user_id_dict[user] = len(user_id_dict)
+    print("user id dict finished")
+    for event in event_set:
+        event_id_dict[event] = len(event_id_dict)
+    print("event id dict finished")
+    user_id_str = ""
+    event_id_str = ""
+    for user,id in user_id_dict.items():
+        user_id_str += str(user)+"\t"+str(id)+"\n"
+    write_to_file(user_id_map_file,user_id_str)
+    user_id_str = ""
+    print("user id map finished")
+    for event,id in event_id_dict.items():
+        event_id_str += str(event)+"\t"+str(id)+"\n"
+    write_to_file(event_id_map_file,event_id_str)
+    event_id_str = ""
+    print("event id map finished")
+
+    #将user_event转换成userid_eventid
+    if os.path.exists(userid_eventid_map_file):
+        os.remove(userid_eventid_map_file)
+    userid_eventid_str = ""
+    for index,row in df.iterrows():
+        if index%1000 == 0:
+            append_to_file(userid_eventid_map_file,userid_eventid_str)
+            userid_eventid_str = ""
+        userid_eventid_str += str(user_id_dict[row["user"]])+"\t"+str(event_id_dict[row["event"]])+"\n"
+    append_to_file(userid_eventid_map_file,userid_eventid_str)
+#将event_groupid保存到groupid_eventid
+def group_event_to_id(event_groupid_file,event_id_file,groupid_eventid_file):
+    event_id_df = pd.read_csv(event_id_file,sep="\t",names=["event","id"],engine="python")
+    event_id_dict = dict()
+    #从event_id映射表中读取event_id映射关系
+    for index,row in event_id_df.iterrows():
+        event_id_dict[row["event"]] = row["id"]
+    #将event_groupid改写成groupid_eventid
+    event_groupid_df = pd.read_csv(event_groupid_file,sep="\t",names=["event","groupid"],engine="python")
+    if os.path.exists(groupid_eventid_file):
+        os.remove(groupid_eventid_file)
+    groupid_eventid_str = ""
+    for index,row in event_groupid_df.iterrows():
+        if index%1000 == 0:
+            append_to_file(groupid_eventid_file,groupid_eventid_str)
+            groupid_eventid_str = ""
+        groupid_eventid_str += str(row["groupid"])+"\t"+str(event_id_dict[row["event"]])+"\n"
+    append_to_file(groupid_eventid_file,groupid_eventid_str)
+#将groupid_users改写成groupid_userids
+def groupid_users_to_id(groupid_users_file,user_id_file,groupid_userids_file):
+    user_id_df = pd.read_csv(user_id_file, sep="\t", names=["user", "id"], engine="python")
+    user_id_dict = dict()
+    # 从event_id映射表中读取event_id映射关系
+    for index, row in user_id_df.iterrows():
+        user_id_dict[row["user"]] = row["id"]
+    #将groupid_users映射到groupid_userids
+    groupid_users_df = pd.read_csv(groupid_users_file,sep="\t",names=["groupid","users"],engine="python")
+    groupid_userids_str = ""
+    if os.path.exists(groupid_userids_file):
+        os.remove(groupid_userids_file)
+    for index,row in groupid_users_df.iterrows():
+        if index%1000 == 0:
+            append_to_file(groupid_userids_file,groupid_userids_str)
+            groupid_userids_str = ""
+        userids_str = ""
+        for user in str(row["users"]).strip().split(" "):
+            userids_str += str(user_id_dict[int(user)])+" "
+        groupid_userids_str += str(row["groupid"])+"\t"+userids_str.strip()+"\n"
+    append_to_file(groupid_userids_file,groupid_userids_str)
 #将字符串写入文件
 def write_to_file(filename,str):
     with open(filename,'w') as fw:
