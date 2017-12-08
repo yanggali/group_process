@@ -170,14 +170,16 @@ def user_event_to_id(user_event_file,user_id_map_file,event_id_map_file,userid_e
             userid_eventid_str = ""
         userid_eventid_str += str(user_id_dict[row["user"]])+"\t"+str(event_id_dict[row["event"]])+"\n"
     append_to_file(userid_eventid_map_file,userid_eventid_str)
-#将event_groupid保存到groupid_eventid
+
+
+# 将event_groupid保存到groupid_eventid
 def group_event_to_id(event_groupid_file,event_id_file,groupid_eventid_file):
     event_id_df = pd.read_csv(event_id_file,sep="\t",names=["event","id"],engine="python")
     event_id_dict = dict()
-    #从event_id映射表中读取event_id映射关系
+    # 从event_id映射表中读取event_id映射关系
     for index,row in event_id_df.iterrows():
         event_id_dict[row["event"]] = row["id"]
-    #将event_groupid改写成groupid_eventid
+    # 将event_groupid改写成groupid_eventid
     event_groupid_df = pd.read_csv(event_groupid_file,sep="\t",names=["event","groupid"],engine="python")
     if os.path.exists(groupid_eventid_file):
         os.remove(groupid_eventid_file)
@@ -188,14 +190,16 @@ def group_event_to_id(event_groupid_file,event_id_file,groupid_eventid_file):
             groupid_eventid_str = ""
         groupid_eventid_str += str(row["groupid"])+"\t"+str(event_id_dict[row["event"]])+"\n"
     append_to_file(groupid_eventid_file,groupid_eventid_str)
-#将groupid_users改写成groupid_userids
+
+
+# 将groupid_users改写成groupid_userids
 def groupid_users_to_id(groupid_users_file,user_id_file,groupid_userids_file):
     user_id_df = pd.read_csv(user_id_file, sep="\t", names=["user", "id"], engine="python")
     user_id_dict = dict()
     # 从event_id映射表中读取event_id映射关系
     for index, row in user_id_df.iterrows():
         user_id_dict[row["user"]] = row["id"]
-    #将groupid_users映射到groupid_userids
+    # 将groupid_users映射到groupid_userids
     groupid_users_df = pd.read_csv(groupid_users_file,sep="\t",names=["groupid","users"],engine="python")
     groupid_userids_str = ""
     if os.path.exists(groupid_userids_file):
@@ -209,11 +213,79 @@ def groupid_users_to_id(groupid_users_file,user_id_file,groupid_userids_file):
             userids_str += str(user_id_dict[int(user)])+" "
         groupid_userids_str += str(row["groupid"])+"\t"+userids_str.strip()+"\n"
     append_to_file(groupid_userids_file,groupid_userids_str)
-#将字符串写入文件
+
+
+# 统计数据集信息
+# 将groupid_userids转换成groupid_userid二元组
+def groupid_userid_tuple(groupid_userids_file,groupid_userid_file):
+    df = pd.read_csv(groupid_userids_file,sep="\t",names=["groupid","userids"],engine="python")
+    if os.path.exists(groupid_userid_file):
+        os.remove(groupid_userid_file)
+    groupid_userid_str = ""
+    for index,row in df.iterrows():
+        if index%1000 ==0:
+            append_to_file(groupid_userid_file,groupid_userid_str)
+            groupid_userid_str = ""
+        for userid in str(row["userids"]).strip().split(" "):
+            groupid_userid_str += str(row["groupid"])+"\t"+userid+"\n"
+    append_to_file(groupid_userid_file,groupid_userid_str)
+
+
+# 划分训练集
+# 根据test_event_groupid,group_users将user_event中的test event去除
+def get_train_user_event(test_event_groupid,groupid_users,user_event,train_user_event):
+    event_groupid_df = pd.read_csv(test_event_groupid,sep="\t",names=["event","groupid"],engine="python")
+    groupid_users_df = pd.read_csv(groupid_users,sep="\t",names=["groupid","users"],engine="python")
+    user_event_df = pd.read_csv(user_event,sep="\t",names=["user","event"],engine="python")
+    train_user_event_str = ""
+    test_events = set(event_groupid_df["event"].unique())
+    if os.path.exists(train_user_event):
+        os.remove(train_user_event)
+    for index,row in user_event_df.iterrows():
+        if index%10000 == 0:
+            append_to_file(train_user_event,train_user_event_str)
+            train_user_event_str = ""
+        if row["event"] not in test_events:
+            train_user_event_str += str(row["user"])+"\t"+str(row["event"])+"\n"
+        else:
+            groups = list(event_groupid_df[event_groupid_df.event == row["event"]]["groupid"])
+            users = set()
+            for group in groups:
+                users.update(str(groupid_users_df[groupid_users_df.groupid == group]["users"]).split(" "))
+            if str(row["user"]) not in users:
+                train_user_event_str += str(row["user"]) + "\t" + str(row["event"]) + "\n"
+        print("%d row finshed" % index)
+    append_to_file(train_user_event,train_user_event_str)
+
+
+# 获取训练集的group以及user
+def get_train_groupid_user(train_event_groupid,groupid_users,train_groupid_users):
+    event_groupid_df = pd.read_csv(train_event_groupid, sep="\t", names=["event", "groupid"], engine="python")
+    groupid_users_df = pd.read_csv(groupid_users, sep="\t", names=["groupid", "users"], engine="python")
+    train_groupid_user_str = ""
+    groupid_set = set(event_groupid_df["groupid"].unique())
+    if os.path.exists(train_groupid_users):
+        os.remove(train_groupid_users)
+    for index,row in groupid_users_df.iterrows():
+        if index%10000 == 0:
+            append_to_file(train_groupid_users,train_groupid_user_str)
+            train_groupid_user_str = ""
+        if row["groupid"] in groupid_set:
+            train_groupid_user_str += str(row["groupid"]) + "\t"
+            for user in str(row["users"]).strip().split(" "):
+                train_groupid_user_str += user+" "
+            train_groupid_user_str = train_groupid_user_str.strip()+"\n"
+    append_to_file(train_groupid_users,train_groupid_user_str)
+
+
+# 将字符串写入文件
 def write_to_file(filename,str):
     with open(filename,'w') as fw:
         fw.write(str)
-#将字符串追加至文件
+
+
+# 将字符串追加至文件
 def append_to_file(filename,str):
     with open(filename,'a') as fw:
         fw.write(str)
+

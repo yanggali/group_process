@@ -1,4 +1,4 @@
-from file_process import relation_to_dict,initial_adjacent_matrix,dfs,write_to_file,append_to_file,user_event_to_id,group_event_to_id,groupid_users_to_id
+from file_process import relation_to_dict,initial_adjacent_matrix,dfs,write_to_file,append_to_file,user_event_to_id,group_event_to_id,groupid_users_to_id,groupid_userid_tuple
 from plancast_file_process import group_statistic,group_statistic_v2
 import pandas as pd
 import sys
@@ -32,7 +32,8 @@ douban_event_groupid_file_1 = "F:\\datasets\\douban\\raw dataset\\formal\\event_
 douban_groupid_users_file_1 = "F:\\datasets\\douban\\raw dataset\\formal\\groupid_users_uniq.dat"
 #将event_groupid映射到groupid_eventid,groupid_users映射到groupid_userids
 douban_groupid_eventid_file = "F:\\datasets\\douban\\raw dataset\\formal\\groupid_eventid_1.dat"
-douban_groupid_userids_file = "F:\\datasets\\douban\\raw dataset\\formal\\groupid_userids.dat"
+douban_groupid_userids_file = "F:\\datasets\\douban\\raw dataset\\formal\\map\\groupid_userids.dat"
+douban_groupid_userid_file = "F:\\datasets\\douban\\raw dataset\\formal\\groupid_userid.dat"
 def write_to_event_users_file(user_events_file,event_users_file):
     df = pd.read_csv(user_events_file)
     event_users_str = ""
@@ -100,4 +101,5 @@ if __name__=="__main__":
     #group_statistic_v2(douban_event_group_file_1, test_event_groupid_file_1, test_groupid_users_file_1)
     #user_event_to_id(user_event_file,user_id_file,event_id_file,userid_eventid_file)
     #group_event_to_id(douban_event_groupid_file_1,event_id_file,douban_groupid_eventid_file)
-    groupid_users_to_id(douban_groupid_users_file_1,user_id_file,douban_groupid_userids_file)
+    #groupid_users_to_id(douban_groupid_users_file_1,user_id_file,douban_groupid_userids_file)
+    groupid_userid_tuple(douban_groupid_userids_file,douban_groupid_userid_file)
