@@ -278,6 +278,23 @@ def get_train_groupid_user(train_event_groupid,groupid_users,train_groupid_users
     append_to_file(train_groupid_users,train_groupid_user_str)
 
 
+#
+def test_train_user_event(test_train_user_event_file,train_user_event_file,train_group_event):
+    train_group_event_df = pd.read_csv(train_group_event,sep="\t",names=["event","groupid"],engine="python")
+    group_events = set(train_group_event_df["event"].unique())
+    train_user_event_df = pd.read_csv(train_user_event_file,sep="\t",names=["user","event"],engine="python")
+    test_train_user_event_str = ""
+    if os.path.exists(test_train_user_event_file):
+        os.remove(test_train_user_event_file)
+    for index,row in train_user_event_df.iterrows():
+        if index%10000 == 0:
+            append_to_file(test_train_user_event_file,test_train_user_event_str)
+            test_train_user_event_str = ""
+        if row["event"] in group_events:
+            test_train_user_event_str += str(row["user"])+"\t"+str(row["event"])+"\n"
+    append_to_file(test_train_user_event_file,test_train_user_event_str)
+
+
 # 将字符串写入文件
 def write_to_file(filename,str):
     with open(filename,'w') as fw:

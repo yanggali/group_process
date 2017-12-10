@@ -1,4 +1,4 @@
-from file_process import group_event_to_id,groupid_users_to_id,groupid_userid_tuple,get_train_user_event,get_train_groupid_user
+from file_process import group_event_to_id,groupid_users_to_id,groupid_userid_tuple,get_train_user_event,get_train_groupid_user,test_train_user_event
 from plancast_file_process import group_statistic
 user_friends = "F:\\datasets\\group_recommendation\\user_friends.csv\\user_friends.csv"
 event_attendees = "F:\\datasets\\group_recommendation\\event_attendees.csv\\event_attendees.csv"
@@ -29,10 +29,12 @@ groupid_users_file_1 = "F:\\datasets\\group_recommendation\\formal\\groupid_user
 # 划分训练集
 groupid_users = "F:\\datasets\\group_recommendation\\formal\\raw data\\groupid_users_file.dat"
 test_event_group = "F:\\datasets\\group_recommendation\\formal\\test\\test_groupid_event.dat"
-train_event_group = "F:\\datasets\\group_recommendation\\formal\\train\\train_groupid_event.dat"
+train_event_group = "F:\\datasets\\group_recommendation\\formal\\train\\sample_train_groupid_event.dat"
 train_user_event = "F:\\datasets\\group_recommendation\\formal\\train\\train_user_event.dat"
 groupid_users = "F:\\datasets\\group_recommendation\\formal\\raw data\\groupid_users_file.dat"
 train_groupid_users = "F:\\datasets\\group_recommendation\\formal\\train\\train_groupid_users.dat"
+sample_train_user_event = "F:\\datasets\\group_recommendation\\formal\\train\\sample_train_user_event.dat"
 if __name__=="__main__":
     #get_train_user_event(test_event_group,groupid_users,user_event,train_user_event)
-    get_train_groupid_user(train_event_group,groupid_users,train_groupid_users)
+    #get_train_groupid_user(train_event_group,groupid_users,train_groupid_users)
+    test_train_user_event(sample_train_user_event,train_user_event,train_event_group)
