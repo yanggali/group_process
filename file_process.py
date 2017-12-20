@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import random
 import sys
 import os
 sys.setrecursionlimit(100000) #例如这里设置为一百万
@@ -233,10 +234,19 @@ def groupid_userid_tuple(groupid_userids_file,groupid_userid_file):
 
 # 划分训练集
 # 根据test_event_groupid,group_users将user_event中的test event去除
-def get_train_user_event(test_event_groupid,groupid_users,user_event,train_user_event):
-    event_groupid_df = pd.read_csv(test_event_groupid,sep="\t",names=["event","groupid"],engine="python")
+def get_train_user_event(test_group_event,groupid_users,user_event,train_user_event):
+    event_groupid_df = pd.read_csv(test_group_event,sep="\t",names=["groupid","event"],engine="python")
     groupid_users_df = pd.read_csv(groupid_users,sep="\t",names=["groupid","users"],engine="python")
     user_event_df = pd.read_csv(user_event,sep="\t",names=["user","event"],engine="python")
+    group_users_dict = dict()
+    for index,row in groupid_users_df.iterrows():
+        group_users_dict[row["groupid"]] = [int(user) for user in str(row["users"]).strip().split(" ")]
+    event_groups_dict = dict()
+    for index,row in event_groupid_df.iterrows():
+        if row["event"] not in event_groups_dict:
+            event_groups_dict[row["event"]] = [row["groupid"]]
+        else:
+            event_groups_dict[row["event"]].append(row["groupid"])
     train_user_event_str = ""
     test_events = set(event_groupid_df["event"].unique())
     if os.path.exists(train_user_event):
@@ -248,19 +258,19 @@ def get_train_user_event(test_event_groupid,groupid_users,user_event,train_user_
         if row["event"] not in test_events:
             train_user_event_str += str(row["user"])+"\t"+str(row["event"])+"\n"
         else:
-            groups = list(event_groupid_df[event_groupid_df.event == row["event"]]["groupid"])
+            groups = event_groups_dict.get(row["event"])
             users = set()
             for group in groups:
-                users.update(str(groupid_users_df[groupid_users_df.groupid == group]["users"]).split(" "))
-            if str(row["user"]) not in users:
+                users.update(group_users_dict.get(group))
+            if int(row["user"]) not in users:
                 train_user_event_str += str(row["user"]) + "\t" + str(row["event"]) + "\n"
         print("%d row finshed" % index)
     append_to_file(train_user_event,train_user_event_str)
 
 
 # 获取训练集的group以及user
-def get_train_groupid_user(train_event_groupid,groupid_users,train_groupid_users):
-    event_groupid_df = pd.read_csv(train_event_groupid, sep="\t", names=["event", "groupid"], engine="python")
+def get_train_groupid_user(train_group_event,groupid_users,train_groupid_users):
+    event_groupid_df = pd.read_csv(train_group_event, sep="\t", names=["groupid", "event"], engine="python")
     groupid_users_df = pd.read_csv(groupid_users, sep="\t", names=["groupid", "users"], engine="python")
     train_groupid_user_str = ""
     groupid_set = set(event_groupid_df["groupid"].unique())
@@ -278,6 +288,79 @@ def get_train_groupid_user(train_event_groupid,groupid_users,train_groupid_users
     append_to_file(train_groupid_users,train_groupid_user_str)
 
 
+def get_group_users(inputfile,col_names=["groupid","users"],sep="\t"):
+    df = pd.read_csv(inputfile,sep=sep,names=col_names,engine="python")
+    group_users = dict()
+    for index,row in df.iterrows():
+        group_users[row["groupid"]] = [int(member) for member in list(str(row["users"]).strip().split(" "))]
+    return group_users
+
+
+def read_file(inputfile,col_names,flag = 1,sep="\t"):
+    df = pd.read_csv(inputfile,sep=sep,names=col_names,engine="python")
+    if flag == 1:
+        col1 = col_names[0]
+        col2 = col_names[1]
+    else:
+        col1 = col_names[1]
+        col2 = col_names[0]
+    ver1_neighbours = dict()
+    for index,row in df.iterrows():
+        if row[col1] not in ver1_neighbours:
+            ver1_neighbours[row[col1]] = [row[col2]]
+        else:
+            ver1_neighbours[row[col1]].append(row[col2])
+    return ver1_neighbours
+
+
+# 生成1000个测试样例
+def generate_test_candi(test_group_event_file,group_event_file,train_user_event_file,test_group_users_file,train_group_users_file,test_group_event_candi_file):
+    if os.path.exists(test_group_event_candi_file):
+        os.remove(test_group_event_candi_file)
+    test_group_users = get_group_users(test_group_users_file)
+    group_events_dict = read_file(group_event_file,["group","event"],1)
+    user_events_dict = read_file(train_user_event_file,["user","event"],1)
+    user_event_df = pd.read_csv(train_user_event_file,sep="\t",names=["user","event"],engine="python")
+    candi_events = list(user_event_df["event"].unique())
+    print("event number:%d" % len(candi_events))
+    # 找到所有被训练过的user
+    train_group_users_df = pd.read_csv(train_group_users_file,sep="\t",names=["group","users"],engine="python")
+    trained_users = set()
+    for index,row in train_group_users_df.iterrows():
+        trained_users.update([int(user) for user in str(row["users"]).strip().split(" ")])
+    test_group_event_df = pd.read_csv(test_group_event_file,sep="\t",names=["group","event"],engine="python")
+    for index, row in test_group_event_df.iterrows():
+        print("index %d" % index)
+        if row["event"] not in candi_events:
+            continue
+        test_group_event_candis = str(row["group"])+"\t"+str(row["event"])+"\t"
+        members = test_group_users.get(row["group"])
+        members_events = set()
+        group_candi_events = set()
+        num = 0
+        # 首先看该group内所有成员是否都被训练
+        for member in members:
+            if member not in trained_users:
+                break
+            num += 1
+            members_events.update(user_events_dict.get(member))
+        if num < len(members): continue
+        # 挑选1000个该group和group成员都未参加过的event
+        candi_num = 0
+        while candi_num < 1000:
+            event = draw_candi(candi_events)
+            if event not in group_events_dict.get(row["group"]) and event not in members_events\
+                    and event not in group_candi_events:
+                group_candi_events.add(event)
+                test_group_event_candis += str(event)+" "
+                candi_num += 1
+        test_group_event_candis += "\n"
+        append_to_file(test_group_event_candi_file,test_group_event_candis)
+
+
+def draw_candi(candi_events):
+    r = random.randint(0,len(candi_events)-1)
+    return candi_events[r]
 #
 def test_train_user_event(test_train_user_event_file,train_user_event_file,train_group_event):
     train_group_event_df = pd.read_csv(train_group_event,sep="\t",names=["event","groupid"],engine="python")

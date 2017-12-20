@@ -1,4 +1,4 @@
-from file_process import relation_to_dict,initial_adjacent_matrix,dfs,write_to_file,append_to_file,user_event_to_id,group_event_to_id,groupid_users_to_id,groupid_userid_tuple
+from file_process import relation_to_dict,initial_adjacent_matrix,dfs,write_to_file,append_to_file,user_event_to_id,group_event_to_id,groupid_users_to_id,groupid_userid_tuple,get_train_groupid_user,get_train_user_event,generate_test_candi
 from plancast_file_process import group_statistic,group_statistic_v2
 import pandas as pd
 import sys
@@ -14,11 +14,7 @@ user_event_file = "F:\\datasets\\douban\\raw dataset\\formal\\user_event.dat"
 userid_eventid_file = "F:\\datasets\\douban\\raw dataset\\formal\\userid_eventid.dat"
 user_id_file = "F:\\datasets\\douban\\raw dataset\\formal\\user_id.dat"
 event_id_file = "F:\\datasets\\douban\\raw dataset\\formal\\event_id.dat"
-#output 无向
-douban_event_group_file = "F:\\datasets\\douban\\raw dataset\\undirected\\event_group.dat"
-douban_big_event_file = "F:\\datasets\\douban\\raw dataset\\bigevent_users.dat"
-douban_event_groupid_file = "F:\\datasets\\douban\\raw dataset\\event_groupid_0.dat"
-douban_groupid_users_file = "F:\\datasets\\douban\\raw dataset\\groupid_users_0.dat"
+
 #output 有向
 douban_event_group_file_1 = "F:\\datasets\\douban\\raw dataset\\directed\\event_group_1.dat"
 douban_big_event_file_1 = "F:\\datasets\\douban\\raw dataset\\bigevent_users_1.dat"
@@ -61,14 +57,6 @@ def initial_event_group(event_users_file,user_follows_file,event_group_file,big_
             append_to_file(event_group_file,event_group_str)
             event_group_str = ""
         attendees_list = str(row["users"]).split(" ")
-        # if len(attendees_list) > 1000:
-        #     big_event_file_str += str(row["event"])+"\t"
-        #     for attendee in attendees_list:
-        #         big_event_file_str += attendee+" "
-        #     big_event_file_str += "\n"
-        #     append_to_file(big_event_file,big_event_file_str)
-        #     big_event_file_str = ""
-        #     continue
         vertex = len(attendees_list)
         attendee_index_dict = {attendee:attendees_list.index(attendee) for attendee in attendees_list}
         index_attendee_dict = {attendees_list.index(attendee):attendee for attendee in attendees_list}
@@ -95,6 +83,15 @@ def initial_event_group(event_users_file,user_follows_file,event_group_file,big_
         print("event "+str(row["event"])+" finished")
     append_to_file(event_group_file,event_group_str)
 
+train_groupid_eventid = "F:/codebase/python/group_model/data/dataset/douban/train_groupid_eventid.dat"
+test_groupid_eventid = "F:/codebase/python/group_model/data/dataset/douban/test_groupid_eventid.dat"
+groupid_userids = "F:/codebase/python/group_model/data/dataset/douban/groupid_userids.dat"
+train_groupid_userids = "F:/codebase/python/group_model/data/dataset/douban/train_groupid_userids.dat"
+test_groupid_userids = "F:/codebase/python/group_model/data/dataset/douban/test_groupid_userids.dat"
+user_event = "F:/codebase/python/group_model/data/dataset/douban/userid_eventid.dat"
+train_user_event = "F:/codebase/python/group_model/data/dataset/douban/train_userid_eventid.dat"
+groupid_eventid = "F:/codebase/python/group_model/data/dataset/douban/groupid_eventid.dat"
+test_groupid_eventid_candis = "F:/codebase/python/group_model/data/dataset/douban/test_groupid_eventid_candis.dat"
 if __name__=="__main__":
     #write_to_event_users_file(douban_user_event_file,douban_event_users_file)
     #initial_event_group(douban_event_users_file,douban_user_follows_file,douban_event_group_file_1,douban_big_event_file_1)
@@ -102,4 +99,9 @@ if __name__=="__main__":
     #user_event_to_id(user_event_file,user_id_file,event_id_file,userid_eventid_file)
     #group_event_to_id(douban_event_groupid_file_1,event_id_file,douban_groupid_eventid_file)
     #groupid_users_to_id(douban_groupid_users_file_1,user_id_file,douban_groupid_userids_file)
-    groupid_userid_tuple(douban_groupid_userids_file,douban_groupid_userid_file)
+    # 抽取train groupid_userids
+    #get_train_groupid_user(test_groupid_eventid,groupid_userids,test_groupid_userids)
+    # 根据train_groupid_event抽取train_user_event
+    # get_train_user_event(test_groupid_eventid,groupid_userids,user_event,train_user_event)
+    generate_test_candi(test_groupid_eventid, groupid_eventid, train_user_event, test_groupid_userids,
+                        train_groupid_userids,test_groupid_eventid_candis)
