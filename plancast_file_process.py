@@ -17,16 +17,21 @@ def initial_friends_relationship(user_subscription_file):
 
 #初始化group-user,group-event
 def initial_group_event(user_event_file,user_subscription_file,event_users_file):
+    if os.path.exists(event_users_file):
+        os.remove(event_users_file)
     event_group_str = ""
-    group_user_str = ""
-    group_users_dict = dict()
-    group_event_dict = dict()
     user_friends_dict = initial_friends_relationship(user_subscription_file)
     print("initial friends relationship finished")
     col_names = ["user","event"]
     df = pd.read_csv(user_event_file,names=col_names)
     event_set = set(df["event"].unique())
+    print("event len:%d" % len(event_set))
+    index = 0
     for event in event_set:
+        index += 1
+        if index % 1000 == 0:
+            append_to_file(event_users_file,event_group_str)
+            event_group_str = ""
         users_list = [str(i) for i in list(df["user"][df.event==event])]
         vertex = len(users_list)
         user_index_dict = dict()
@@ -49,12 +54,13 @@ def initial_group_event(user_event_file,user_subscription_file,event_users_file)
                 #print(connect_set)
                 # if connect_set not in group_users_dict.values():
                 #     group_users_dict[len(group_users_dict)] = connect_set
-                users_str = ""
-                for user in connect_set:
-                    users_str += str(user)+" "
-                event_group_str += str(event)+"::"+users_str+"\n"
+                if len(connect_set) > 1:
+                    users_str = ""
+                    for user in connect_set:
+                        users_str += str(user)+" "
+                    event_group_str += str(event)+"::"+users_str+"\n"
         print("event " + str(event) + " finished")
-    write_to_file(event_users_file,event_group_str)
+    append_to_file(event_users_file,event_group_str)
 
 #将group人数超过2个的挑选出来
 def get_event_group(event_users_file,event_group_file):
