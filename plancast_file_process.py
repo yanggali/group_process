@@ -116,7 +116,7 @@ def group_statistic_v2(event_group_file,event_groupid_file,groupid_users_file):
         group = str(row["group"]).split(" ")
         group_hashcode = get_hash_code(group)
         id = group_index_dict[group_hashcode]
-        event_groupid_str += str(row["event"])+"\t"+str(id)+"\n"
+        event_groupid_str += str(id)+"\t"+str(row["event"])+"\n"
         groupid_users_str += str(id)+"\t"+str(row["group"])+"\n"
         print("%d row finished!" % index)
     append_to_file(event_groupid_file,event_groupid_str)

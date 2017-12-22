@@ -181,7 +181,7 @@ def group_event_to_id(event_groupid_file,event_id_file,groupid_eventid_file):
     for index,row in event_id_df.iterrows():
         event_id_dict[row["event"]] = row["id"]
     # 将event_groupid改写成groupid_eventid
-    event_groupid_df = pd.read_csv(event_groupid_file,sep="\t",names=["event","groupid"],engine="python")
+    event_groupid_df = pd.read_csv(event_groupid_file,sep="\t",names=["groupid","event"],engine="python")
     if os.path.exists(groupid_eventid_file):
         os.remove(groupid_eventid_file)
     groupid_eventid_str = ""
@@ -211,7 +211,7 @@ def groupid_users_to_id(groupid_users_file,user_id_file,groupid_userids_file):
             groupid_userids_str = ""
         userids_str = ""
         for user in str(row["users"]).strip().split(" "):
-            userids_str += str(user_id_dict[int(user)])+" "
+            userids_str += str(user_id_dict[user])+" "
         groupid_userids_str += str(row["groupid"])+"\t"+userids_str.strip()+"\n"
     append_to_file(groupid_userids_file,groupid_userids_str)
 
